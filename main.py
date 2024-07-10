@@ -12,14 +12,17 @@ delivery_in_kg = {"types" : ["Обычная", "Экспресс"],
 delivery_col_names = ["Сервис", "Цена ($)", "Транзитное время (дни)"]
 manufacture_years = ["2024-2022", "2021-2020", "2019 и менее"]
 engine_types = ["Двигатель внутреннего сгорания", "Электрический двигатель"]
-sum_col_names = ["Цена", "Доставка", "Растаможка", "Услуги"]
+sum_col_names = ["Цена Авто", "Доставка", "Растаможка", "Услуги", "Итого"]
+AGENCY_FEE = 800000
 
-rates = {}
-if not rates:
+@st.cache_data
+def init_rates():
     sr = GetGoogleRates()
     sr.fetch_rates()
     rates = sr.get_rates()
     rate_time = datetime.now().strftime("%d/%m/%Y %H:%M")
+    return [rates, rate_time]
+rates, rate_time = init_rates()
 
 
 st.title('FS CAR EXPORT')
@@ -46,11 +49,12 @@ elif country == countries[1]:
     print()
 
 elif country == countries[2]:
-
     delivery = st.selectbox(
         "Выберите способ доставки",
         (delivery_in_kg["types"]),
     )
+    delivery_id = delivery_in_kg["types"].index(delivery)
+    delivery = list(a[0] for a in delivery_in_kg.values())
 
     delivery_df = pd.DataFrame(data=delivery_in_kg)
     delivery_df.rename(columns=dict(zip(delivery_in_kg.keys(), delivery_col_names)),
@@ -89,15 +93,20 @@ elif country == countries[2]:
 
     if calc_button:
         st.write("-----")
+        print(delivery)
+
+        sum_df_data = [["", str(price) + " вон"],
+                       [str(delivery[2]) + " дней", str(delivery[1]) + " долларов"],
+                       ["2022", 5000],
+                       ["", str(AGENCY_FEE) + " вон"],
+                       ["", "sum"]]
+        sum_df_data = dict(zip(sum_col_names, sum_df_data))
+        print(sum_df_data)
+        st.dataframe(pd.DataFrame(data=sum_df_data), hide_index=True)
+
+        st.write("-----")
         st.dataframe(pd.DataFrame(data=rates), hide_index=True)
-        st.markdown(f"Курсы валют получены с сайта _www.google.com/finance/quote/KRW-USD_ в {rate_time}")
-
-        # sum_df = pd.DataFrame(data=delivery_in_kg)
-        # sum_df.rename(columns=dict(zip(delivery_in_kg.keys(), delivery_col_names)),
-        #                 inplace=True)
-        # sum_df.index += 1
-        # st.table(sum_df)
-
+        st.markdown(f"_Курсы валют получены с сайта www.google.com/finance в {rate_time}_")
     
 
 elif country == countries[3]:
